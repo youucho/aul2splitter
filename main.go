@@ -53,7 +53,6 @@ func MergeAul2(base aul2, sub aul2) aul2 {
 		}
 		for ori, tra := range v {
 			if _, prs := base[field][ori]; prs {
-				fmt.Println("skip cuz exist")
 				continue
 			} else {
 				result[field][ori] = tra
@@ -63,15 +62,51 @@ func MergeAul2(base aul2, sub aul2) aul2 {
 	return result
 }
 
+func BulkMergeAul2(directory string) aul2 {
+	result := make(aul2)
+	err := os.Chdir(directory)
+	error(err)
+	dir, err := os.ReadDir(".")
+	error(err)
+	var files []string
+	for _, v := range dir {
+		if v.IsDir() {
+			continue
+		}
+		files = append(files, v.Name())
+	}
+	for _, name := range files {
+		sub, err := os.ReadFile(name)
+		error(err)
+		subaul2 := ParseAul2(string(sub))
+		result = MergeAul2(result, subaul2)
+	}
+	err = os.Chdir("../")
+	error(err)
+	return result
+}
+
+func WriteAul2(content aul2) {
+	string := "; This file was written with aul2splitter\n"
+	f, err := os.Create("Result.aul2")
+	error(err)
+	defer f.Close()
+	for field, lines := range content {
+		string += "[" + field + "]\n"
+		for ori, tra := range lines {
+			string += ori + "=" + tra + "\n"
+		}
+	}
+	f.WriteString(string)
+}
+
 func main() {
-	base, err := os.ReadFile("base.aul2")
-	error(err)
-	sub, err := os.ReadFile("sub.aul2")
-	error(err)
-	baseaul2 := ParseAul2(string(base))
-	subaul2 := ParseAul2(string(sub))
-	fmt.Println(baseaul2)
-	fmt.Println(subaul2)
-	result := MergeAul2(baseaul2, subaul2)
-	fmt.Println(result)
+	args := os.Args
+	if len(args) == 1 {
+		fmt.Println("Use 'aul2splitter <directory> to merge aul2 files'")
+	} else {
+		fmt.Printf("Merging %s...\n", args[1])
+		result := BulkMergeAul2(args[1])
+		WriteAul2(result)
+	}
 }
